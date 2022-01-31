@@ -1,102 +1,71 @@
 @using Microsoft.AspNetCore.SignalR.Client
-<MudCard Style="height : 50vh;">
-    <MudCardHeader>
-        <CardHeaderContent>
-            @if(State?.ClaimedCard is not null){
-                <MudText Typo="Typo.h6">Claimed Card : @State?.ClaimedCard</MudText>
-            } else {
-                <MudText Typo="Typo.h6">Game State : @Session?.State</MudText>
-            }
-        </CardHeaderContent>
-        <CardHeaderActions>
-            <MudIconButton OnClick="CloseRoom" Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
-        </CardHeaderActions>
-    </MudCardHeader>
-    <MudCardContent>
-        <MudGrid Style="height : 40vh;">
-            <MudItem xs="6" Style="height : 35vh;">
-                <MudCard>
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Players</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudPaper>
-                            <MudList Style="height : 25vh; overflow-y:scroll;">
-                                @foreach(var player in State?.Players){
-                                    <MudListItem Avatar="@Icons.Filled.Person">
-                                        @player.Name
-                                    </MudListItem>
-                                }
-                            </MudList>
-                        </MudPaper>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-            <MudItem xs="6" Style="height : 40vh;">
-                <MudCard Style="height :37vh;">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Burnt</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudPaper>
-                            <MudCarousel TData="object" Style="height : 25vh; overflow-y:scroll;">
-                                @foreach(var carte in State?.Deck){
-                                    <MudCarouselItem>
-                                        @carte
-                                    </MudCarouselItem>
-                                }
-                            </MudCarousel>
-                        </MudPaper>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-        </MudGrid>
-    </MudCardContent>
-</MudCard>
+@if(Room is not null){
+
+    <MudCard Style="height : 50vh;">
+        <MudCardHeader>
+            <CardHeaderContent>
+                @if(Room?.State?.ClaimedCard is not null){
+                    <MudText Typo="Typo.h6">Claimed Card : @Room?.State?.ClaimedCard</MudText>
+                } else {
+                    <MudText Typo="Typo.h6">Game Room?.State : @Room?.Session?.State</MudText>
+                }
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <MudIconButton OnClick="CloseRoom" Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+            </CardHeaderActions>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudGrid Style="height : 40vh;">
+                <MudItem xs="6" Style="height : 35vh;">
+                    <MudCard>
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Players</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudPaper>
+                                <MudList Style="height : 25vh; overflow-y:scroll;">
+                                    @foreach(var player in Room?.State?.Players){
+                                        <MudListItem Avatar="@Icons.Filled.Person">
+                                            @player.Name
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            </MudPaper>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                <MudItem xs="6" Style="height : 40vh;">
+                    <MudCard Style="height :37vh;">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Burnt</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudPaper>
+                                <MudCarousel ShowBullets="false" TData="object" Style="height : 25vh; overflow-y:scroll;">
+                                    @foreach(var carte in Room?.State?.Deck.Distinct()){
+                                        <MudCarouselItem>
+                                            @carte
+                                        </MudCarouselItem>
+                                    }
+                                </MudCarousel>
+                            </MudPaper>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+}
 
 @code {
-    [Parameter] public string RoomId {get; set;}
-    [Parameter] public string UserId {get; set;}
     [Parameter] public HubConnection? HubConnection {get; set;}
-    public GameState State      {get; set;} = new GameState {
-        ClaimedCard = 5,
-        Deck = Enumerable.Range(0, 100).ToList(),
-        Board = new Stack<int>(),
-        Players = new List<Player> {
-            new Player(
-                Id : Guid.NewGuid().ToString(),
-                Name : "Player 1"
-            ),
-            new Player(
-                Id : Guid.NewGuid().ToString(),
-                Name : "Player 2"
-            )
-        }
-    };
-    public GameSession Session  {get; set;} = new GameSession {
-        RoomName = "Room 1",
-        State = PreState.Started,
-        Dealer = new Player(
-            Id : Guid.NewGuid().ToString(),
-            Name : "Dealer"
-        ),
-        Waiting = new List<Player> {
-            new Player(
-                Id : Guid.NewGuid().ToString(),
-                Name : "Player 1"
-            ),
-            new Player(
-                Id : Guid.NewGuid().ToString(),
-                Name : "Player 2"
-            )
-        }
-    };
+    [Parameter] public Metadata Room {get; set;}
 
     private async Task CloseRoom(){
-        await HubConnection.InvokeAsync("StopRoom",UserId, RoomId);
+        await HubConnection.InvokeAsync("StopRoom",Room?.Session?.Dealer?.Id, Room?.Session?.RoomId);
     }
 }

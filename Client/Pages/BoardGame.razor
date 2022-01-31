@@ -1,39 +1,91 @@
 @page "/Board"
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager NavigationManager
+@inject IDialogService DialogService
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
     </MudAppBar>
-    <MudDrawer @bind-Open="@open" Elevation="1" Width="50vw">
-        <GameStats HubConnection="@Connection" RoomId="@Room" UserId="@User"/>
+    <MudDrawer @bind-Open="@IsSidebarOpened" Elevation="1" Width="50vw">
+        <GameStats HubConnection="@Connection" Room="@Game"/>
         <ChatRoom HubConnection="@Connection" RoomId="@Room" UserId="@User"/>
     </MudDrawer>
     <MudMainContent Class="pt-16 px-16">
-        <MudPaper Elevation="2" Height="60vh" Style="margin-top: 1vh;" Class="d-flex justify-center py-2 px-1 mt-6">
+        <MudPaper Elevation="2" Height="50vh" Style="margin-top: 1vh;" Class="d-flex justify-center py-2 px-1 mt-6">
 
         </MudPaper>
-        <MudPaper Height="28vh" Class="d-flex justify-center py-2 px-1 mt-6">
+        @if((Game?.State?.Board?.Count() ?? 1) > 0){
+            <MudPaper Elevation="2" Height="7vh" Style="margin-top: 1vh;" Class="d-flex justify-center py-2 px-1 mt-6">
+                <MudGrid>
+                    <MudItem xs="6">
+                        <MudButton OnClick="@(() => ToggleDeck(false))" Variant="Variant.Filled" Color="Color.Primary"   FullWidth="true">Trust Previous Move</MudButton>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudButton OnClick="@(() => ToggleDeck(true))" Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true">Doubt Previous Move</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        }
+        <MudPaper Height="28vh" Class="d-flex justify-center py-2 px-1 mt-6" Style="position: relative;">
             <MudPaper Height="27vh">
                 @foreach(var (idx, card) in Deck){
-                    <CardComponent Number="@card" Style="@margin(idx)"/>
+                    <CardComponent Number="@card" Style="@margin(idx)" OnClick="@((num) => CardSelected(num))"/>
                 }
             </MudPaper>
+            <MudOverlay Visible="@IsCardDeckLocked" DarkBackground="true" Absolute="true"/>
         </MudPaper>
     </MudMainContent>
 </MudLayout>
 
 @code {
     [Parameter ] public HubConnection? Connection {get; set;}
-    [Parameter ] public string Room {get; set;}
-    [Parameter ] public string User {get; set;}
+    [Parameter ] public string Room   {get; set;}
+    [Parameter ] public string User   {get; set;}
+    [Parameter ] public Metadata Game {get; set;}
+    private int? SelectedCard = null;
+    bool IsSidebarOpened = false, IsCardDeckLocked = false;
 
-    bool open = false;
-    void ToggleDrawer()
+    protected override async Task OnInitializedAsync()
     {
-        open = !open;
+        Connection.On<Metadata>("GetState", (state) =>
+        {
+            Game = state;
+            StateHasChanged();
+        });
+        Game = await Connection.InvokeAsync<Metadata>("GetRoom", Room);
     }
 
+    void ToggleDeck(bool status) {
+        IsCardDeckLocked = status;
+        if(!status) {
+
+        }
+    }
+
+    private async Task ConfirmCard()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("Number", SelectedCard);
+        var dialog = DialogService.Show<ConfirmCard>("Confirm Move", parameters, new DialogOptions { CloseOnEscapeKey = true });
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            var ClaimedCard = result.Data.ToString();
+            Console.WriteLine(ClaimedCard);
+        }
+    }
+
+
+    void ToggleDrawer()
+    {
+        IsSidebarOpened = !IsSidebarOpened;
+    }
+
+    private async Task CardSelected(int num)
+    {
+        SelectedCard = num;
+        await ConfirmCard();
+    }
     private List<(int, int)> Deck => Enumerable.Range(0,14).Select((v, i) => (i, v)).ToList();
     private string margin(int idx) => idx == 0 ?  "margin : 10px;" :  "margin : 10px; margin-left : -75px;";
 }

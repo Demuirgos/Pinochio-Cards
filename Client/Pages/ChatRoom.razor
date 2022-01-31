@@ -31,11 +31,7 @@
         <MudPaper>
             <MudGrid>
                 <MudItem xs="10">
-                    <MudTextField
-                        Style="margin-left = 10px;"
-                        @bind-Value="Message"
-                        Placeholder="Type your message here"
-                    />
+                    <MudTextField @bind-Value="Message" Placeholder="Type your message here"/>
                 </MudItem>
                 <MudItem xs="2">
                     <MudButton OnClick="SendMessage" Variant="Variant.Outlined" Color="Color.Secondary">Send</MudButton>

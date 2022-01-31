@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Game.Architecture;
 using Game.Models;
-using System.Configuration;
+
 namespace Game.Hubs;
 public class GameHub : Hub
 {
@@ -12,6 +12,8 @@ public class GameHub : Hub
         GetMessage,
         GetGameStarted,
         GetGameEnded,
+        AlterState,
+        GetState
     }
     private static Manager Engine = new Manager();
     private static Dictionary<string, string> Users = new();
@@ -25,14 +27,18 @@ public class GameHub : Hub
                         Size : room.Value.Session.Waiting.Count, 
                         State : room.Value.Session.State
                 )).ToList();
-    public override async Task OnConnectedAsync() => 
-        await base.OnConnectedAsync();
-    public async Task<string> GetId() => Context.ConnectionId; 
-    public async Task<List<RoomsData>> GetRooms() => OpenRooms ?? new(); 
-    public async Task SendMessage(string userId, string roomId, string message) =>
-        await Clients.Group(roomId).SendAsync(
-            MessageType.GetMessage.ToString(), 
-            new ChatMessage(Users[userId], message));
+    public override async Task OnConnectedAsync() 
+        => await base.OnConnectedAsync();
+    public async Task<string> GetId() 
+        =>  Context.ConnectionId; 
+    public async Task<List<RoomsData>> GetRooms() 
+        =>  OpenRooms ?? new(); 
+    public async Task<Metadata> GetRoom(string roomId) 
+        =>  Engine.Rooms[roomId];
+    public async Task SendMessage(string userId, string roomId, string message) 
+        =>  await Clients.Group(roomId).SendAsync(
+                MessageType.GetMessage.ToString(), 
+                new ChatMessage(Users[userId], message));
     public async Task SetupRoom(string userId, string roomId, string roomName){
         Engine.CreateRoom(
             dealer : new Player(userId, Users[userId]),

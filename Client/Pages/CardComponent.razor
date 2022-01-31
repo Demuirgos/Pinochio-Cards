@@ -1,6 +1,13 @@
-
-@if(!IsFlipped){
-    <svg width="120px" height="200px" viewBox="0 0 165 200" style="@Style"
+<style>
+    svg:hover {
+    transform: translate(0px, -30px);
+    }
+    svg {
+    transition: transform 250ms;
+    }
+</style>
+@if(IsFlipped){
+    <svg @onclick="SelectCardEvent" width="120px" height="200px" viewBox="0 0 165 200" style="@Style"
         xmlns="http://www.w3.org/2000/svg" 
         xmlns:xlink="http://www.w3.org/1999/xlink">
         <defs>
@@ -240,5 +247,7 @@
     [Parameter] public int Number {get; set;} = 1;
     [Parameter] public string Style {get; set;}
     [Parameter] public bool IsFlipped {get; set;} = true;
+    [Parameter] public EventCallback<int> OnClick {get; set;}
+    private async Task SelectCardEvent() => await OnClick.InvokeAsync(Number);
     private string CardTexture => $"<use id=\"fs\" x=\"7.5\" width=\"140\" height=\"190\" xlink:href=\"#h{Number}\") class=\"hide\" />";
 }
