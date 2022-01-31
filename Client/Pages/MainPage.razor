@@ -1,0 +1,19 @@
+@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+<CreateAccount Connection="hubConnection"/>
+<AvailableGames Connection="hubConnection"/>
+
+@code {
+    private HubConnection? hubConnection;
+    private string connectionId;
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/gamehub"))
+            .Build();
+
+        await hubConnection.StartAsync();
+        connectionId = await hubConnection.InvokeAsync<string>("GetId");
+    }
+}

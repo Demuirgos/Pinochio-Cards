@@ -1,0 +1,58 @@
+<MudCard Style="height : 50vh;">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Chat Room : </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudPaper Height="30vh">
+            <MudSimpleTable FixedHeader="true" Style="height:30vh;">
+                <thead>
+                    <tr>
+                        @foreach (var (header, span) in headings)
+                        {
+                            <th rowspan="@span">@header</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var (sender, message) in Messages)
+                    {
+                        <tr>
+                            <td>@sender</td>
+                            <td>@message</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+        <MudPaper>
+            <MudGrid>
+                <MudItem xs="10">
+                    <MudTextField
+                        Style="margin-left = 10px;"
+                        @bind-Value="Message"
+                        Placeholder="Type your message here"
+                    />
+                </MudItem>
+                <MudItem xs="2">
+                    <MudButton OnClick="SendMessage" Variant="Variant.Outlined" Color="Color.Secondary">Send</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudCardContent>
+</MudCard>
+@code {
+    private string Message = "";
+    List<(string, int)> headings = new(){ 
+        ("Name", 1),
+        ("Message", 3) 
+    };
+    List<(string, string)> Messages = new(){
+        ("Game", "Game Started")
+    };
+
+    private async Task SendMessage(){
+        Messages.Add(("You", Message));
+    }
+}

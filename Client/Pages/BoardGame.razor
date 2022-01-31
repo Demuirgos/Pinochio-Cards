@@ -1,0 +1,35 @@
+@page "/Board"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+    </MudAppBar>
+    <MudDrawer @bind-Open="@open" Elevation="1" Width="50vw">
+        <GameStats/>
+        <ChatRoom/>
+    </MudDrawer>
+    <MudMainContent Class="pt-16 px-16">
+        <MudPaper Elevation="2" Height="60vh" Style="margin-top: 1vh;" Class="d-flex justify-center py-2 px-1 mt-6">
+
+        </MudPaper>
+        <MudPaper Height="28vh" Class="d-flex justify-center py-2 px-1 mt-6">
+            <MudPaper Height="27vh">
+                @foreach(var (idx, card) in Deck){
+                    <CardComponent Number="@card" Style="@margin(idx)"/>
+                }
+            </MudPaper>
+        </MudPaper>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool open = false;
+    void ToggleDrawer()
+    {
+        open = !open;
+    }
+
+    private List<(int, int)> Deck => Enumerable.Range(0,14).Select((v, i) => (i, v)).ToList();
+    private string margin(int idx) => idx == 0 ?  "margin : 10px;" :  "margin : 10px; margin-left : -75px;";
+}

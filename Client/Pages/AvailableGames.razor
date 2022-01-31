@@ -1,0 +1,89 @@
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+
+<MudPaper Width="100%" Class="pa-4 mud-height-full">
+    <MudGrid>
+        <MudAppBar Color="Color.Primary" Fixed="false">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" />
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Inherit" />
+            <MudSpacer />
+            <MudPaper Width="30vw">
+                <MudAutocomplete T="string" Label="RoomId" @bind-Value="searchTerm" SearchFunc="@Search2"
+                            AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" 
+                            Width="30vw"/>
+
+            </MudPaper>
+        </MudAppBar>
+        @foreach(var game in Games){
+            <MudItem xs="6" sm="3">
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">@game.Name</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            @if(game.OwnerId == ConnectionId){
+                                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+                            }
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText>this game is : @game.State</MudText>
+                        <MudText Typo="Typo.body2">this game has : @game.Size players</MudText>
+                    </MudCardContent>
+                    <MudCardActions>
+                        @if(game.Members.Contains(ConnectionId)){
+                            <MudButton OnClick= "@(async () => await LeaveRoom(@game.Id))" Variant="Variant.Text" Color="Color.Error" Disabled="@((game.State != PreState.Pending) || (ConnectionId == game.OwnerId))">Leave</MudButton>
+                        } else {
+                            <MudButton OnClick= "@(async () => await JoinRoom(@game.Id))" Variant="Variant.Text" Color="Color.Primary" Disabled="@((game.State != PreState.Pending) || (ConnectionId == game.OwnerId))">Join</MudButton>
+                        }
+                        <MudButton OnClick= "@(async () => await RemoveRoom(@game.Id))" Variant="Variant.Text" Color="Color.Secondary" Disabled="@(ConnectionId != game.OwnerId)">Remove</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+</MudPaper>
+@code {
+    [Parameter ] public HubConnection? Connection {get; set;}
+    private string ConnectionId;
+    private List<RoomsData> games = new();
+    private List<RoomsData> Games => games?.Where(g => g.Id.Contains(searchTerm, StringComparison.InvariantCultureIgnoreCase)).ToList();
+    private string searchTerm = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Connection.On<List<RoomsData>>("GetUpdate", (rooms) =>
+        {
+            games = rooms;
+            StateHasChanged();
+        });
+        ConnectionId = await Connection.InvokeAsync<string>("GetId");
+        games = await Connection.InvokeAsync<List<RoomsData>>("GetRooms");
+    }
+
+
+    private async Task<IEnumerable<string>> Search2(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return new string[0];
+        return games.Select(g => g.Id);
+    }
+
+    private async Task RemoveRoom(string roomId) {
+        await Connection.InvokeAsync<List<RoomsData>>("RemoveGroup", roomId, ConnectionId);
+    }
+
+    private async Task JoinRoom(string roomId){
+        await Connection.InvokeAsync("AddToGroup", roomId, ConnectionId);
+    }
+
+    private async Task<bool> CheckMembership(string roomId) {
+        return await Connection.InvokeAsync<bool>("CheckMembership", roomId, ConnectionId);
+    }
+    
+    private async Task LeaveRoom(string roomId) {
+        await Connection.InvokeAsync("RemoveFromGroup", roomId, ConnectionId);
+    }
+}

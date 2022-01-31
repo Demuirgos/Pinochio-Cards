@@ -1,0 +1,100 @@
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.ComponentModel.DataAnnotations
+
+<EditForm Model="@model">
+<DataAnnotationsValidator/>
+<MudPaper Width="100%" Class="pa-4 mud-height-full">
+    <MudCard>
+        <MudCardContent>
+            <MudTextField Label="Player Id" HelperText="PLayer Id" Class="mt-3"
+                        @bind-Value="model.Id" Disabled="true"/>
+            <MudTextField Label="PLayer Name" HelperText="Choose your name" Class="mt-3"
+                        @bind-Value="model.PlayerName" For="@(() => model.PlayerName)"/>
+            <MudExpansionPanel Text="Create Room" MaxHeight="150">
+                <MudTextField Label="Room Name" HelperText="Max. 8 characters"
+                            @bind-Value="model.RoomName" For="@(() => model.RoomName)"/>
+                <MudTextField Label="Player Count" Class="mt-3"
+                            @bind-Value="model.PlayerCount" For="@(() => model.PlayerCount)"/>
+            </MudExpansionPanel>
+        </MudCardContent>
+        <MudCardActions>
+            <MudGrid>
+                <MudItem xs="8">
+                    <MudExpansionPanel Text="Creation Errors" MaxHeight="150">
+                        <MudPaper Class="pa-4 mud-height-full">
+                            <MudText Typo="Typo.subtitle2">Validation Summary</MudText>
+                            @foreach(var message in Notifications){
+                                <MudText Color="Color.Primary">@message</MudText>
+                            }
+                            @if (success)
+                            {
+                                <MudText Color="Color.Success">Success</MudText>
+                            }
+                            else
+                            {
+                                <MudText Color="@Color.Error">
+                                    <ValidationSummary />
+                                </MudText>
+                            }
+                        </MudPaper>
+                    </MudExpansionPanel>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudGrid>
+                        <MudItem xs="4">
+                            <MudButton OnClick="@(() => OnRegisterClick(model))" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Register</MudButton>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudButton OnClick="@(() => OnCreateClick(model))" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Create Room</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+            </MudGrid>
+        </MudCardActions>
+    </MudCard>
+</MudPaper>
+</EditForm>
+@code {
+    RegisterAccountForm model = new RegisterAccountForm();
+    [Parameter] public HubConnection? Connection {get; set;}
+    private List<string> Notifications = new List<string>();
+    bool success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Connection.On<string>("GetNotification", (message) =>
+        {
+            Notifications.Add(message);
+            StateHasChanged();
+        });
+        model.Id = await Connection.InvokeAsync<string>("GetId");
+        Console.WriteLine(model.Id);
+    }
+
+    public class RegisterAccountForm
+    {
+        public string Id {get; set;} = "";
+        
+        [Required]
+        public string PlayerName{ get; set; }
+        
+        [StringLength(50, ErrorMessage = "Name length can't be more than 8.")]
+        public string RoomName { get; set; }
+
+        [Range(4, 8, ErrorMessage = "Value for {0} must be between {1} and {2}.")]
+        public string PlayerCount { get; set; }
+    }
+
+    private async Task OnRegisterClick(RegisterAccountForm context)
+    {
+        success = true;
+        await Connection.SendAsync("SetupAccount", context.Id, context.PlayerName);
+        StateHasChanged();
+    }
+
+    private async Task OnCreateClick(RegisterAccountForm context){
+        success = true;
+        await Connection.SendAsync("SetupRoom", context.Id, Guid.NewGuid().ToString(), context.RoomName);
+        StateHasChanged();
+    }
+}
