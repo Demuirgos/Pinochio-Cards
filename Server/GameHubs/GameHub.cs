@@ -3,10 +3,16 @@ using Microsoft.AspNetCore.SignalR;
 using Game.Architecture;
 using Game.Models;
 using System.Configuration;
-
 namespace Game.Hubs;
 public class GameHub : Hub
 {
+    public enum MessageType {
+        GetNotification, 
+        GetUpdate, 
+        GetMessage,
+        GetGameStarted,
+        GetGameEnded,
+    }
     private static Manager Engine = new Manager();
     private static Dictionary<string, string> Users = new();
     private static List<RoomsData>? OpenRooms 
@@ -19,6 +25,14 @@ public class GameHub : Hub
                         Size : room.Value.Session.Waiting.Count, 
                         State : room.Value.Session.State
                 )).ToList();
+    public override async Task OnConnectedAsync() => 
+        await base.OnConnectedAsync();
+    public async Task<string> GetId() => Context.ConnectionId; 
+    public async Task<List<RoomsData>> GetRooms() => OpenRooms ?? new(); 
+    public async Task SendMessage(string userId, string roomId, string message) =>
+        await Clients.Group(roomId).SendAsync(
+            MessageType.GetMessage.ToString(), 
+            new ChatMessage(Users[userId], message));
     public async Task SetupRoom(string userId, string roomId, string roomName){
         Engine.CreateRoom(
             dealer : new Player(userId, Users[userId]),
@@ -26,44 +40,81 @@ public class GameHub : Hub
             connectionId : roomId
         );
         await Groups.AddToGroupAsync(userId, roomId);
-        await Clients.Client(userId).SendAsync("GetNotification", $"Room Created room Id : {roomId}");
-        System.Console.WriteLine("SetupRoom : launching GetUpdate");
-        await Clients.All.SendAsync("GetUpdate", OpenRooms);
+
+        await Clients.Client(userId).SendAsync(
+            MessageType.GetNotification.ToString(), 
+            $"Room Created room Id : {roomId}");
+        await Clients.All.SendAsync(
+            MessageType.GetUpdate.ToString(), 
+            OpenRooms);
+    }
+
+    public async Task StartRoom(string userId, string roomId){
+        Engine.InitiateRoom(roomId);
+        await Clients.Group(roomId).SendAsync(
+            MessageType.GetNotification.ToString(),  
+            $"Room Started room Id : {roomId}");
+        await Clients.Group(roomId).SendAsync(
+            MessageType.GetGameStarted.ToString(), roomId);
+        await Clients.All.SendAsync(
+            MessageType.GetUpdate.ToString(), OpenRooms);
+    }
+    public async Task StopRoom(string userId, string roomId){
+        Engine.ResetRoom(roomId);
+        await Clients.Group(roomId).SendAsync(
+            MessageType.GetNotification.ToString(),  
+            $"Room Ended room Id : {roomId}");
+        await Clients.Group(roomId).SendAsync(
+            MessageType.GetGameEnded.ToString(), roomId);
+        await Clients.All.SendAsync(
+            MessageType.GetUpdate.ToString(), OpenRooms);
     }
     public async Task SetupAccount(string userId, string name){
         Users.Add(userId, name);
-        await Clients.Client(Context.ConnectionId).SendAsync("GetNotification", $"Account Created");
+        await Clients.Client(Context.ConnectionId).SendAsync(
+            MessageType.GetNotification.ToString(), $"Account Created");
     }
-    public override async Task OnConnectedAsync()
-    {
-        await base.OnConnectedAsync();
-    }
-    public async Task<string> GetId() => Context.ConnectionId; 
-    public async Task<List<RoomsData>> GetRooms() => OpenRooms ?? new(); 
     public async Task AddToGroup(string roomId, string userId)
     {
+        OpenRooms
+            .Where(r => r.Id != roomId || r.OwnerId != userId)
+            .ToList().ForEach(async room => {
+                await RemoveFromGroup(room.Id, userId);
+                Engine.QuitRoom(room.Id, userId );
+            });
+        
         Engine.JoinRoom(roomId, new Player(userId, Users[userId]));
         await Groups.AddToGroupAsync(userId, roomId);
-        await Clients.Client(userId).SendAsync("GetNotification", $"You Joined Room {OpenRooms?.Find(room => room.Id == roomId)?.Name}");
-        await Clients.Group(roomId).SendAsync("GetNotification", $"Player {Users[userId]} Joined!!");
-        System.Console.WriteLine("AddToGrp : launching GetUpdate");
-        await Clients.All.SendAsync("GetUpdate", OpenRooms);
+        await Clients.Client(userId).SendAsync(
+            MessageType.GetNotification.ToString(), 
+            $"You Joined Room {OpenRooms?.Find(room => room.Id == roomId)?.Name}");
+        await Clients.Group(roomId).SendAsync(
+            MessageType.GetNotification.ToString(), 
+            $"Player {Users[userId]} Joined!!");
+        await Clients.All.SendAsync(
+            MessageType.GetUpdate.ToString(), OpenRooms);
     }
 
     public async Task RemoveFromGroup(string roomId, string userId)
     {
-        Engine.QuitRoom(roomId, new Player(userId, Users[userId]));
+        Engine.QuitRoom(roomId, userId);
         await Groups.RemoveFromGroupAsync(userId, roomId);
-        await Clients.Client(userId).SendAsync("GetNotification", $"You Left Room {OpenRooms?.Find(room => room.Id == roomId)?.Name}");
-        await Clients.Group(roomId).SendAsync("GetNotification", $"Player {Users[userId]} Left!!");
-        System.Console.WriteLine("RemoveFromToGrp : launching GetUpdate");
-        await Clients.All.SendAsync("GetUpdate", OpenRooms);
+        await Clients.Client(userId).SendAsync(
+            MessageType.GetNotification.ToString(), 
+            $"You Left Room {OpenRooms?.Find(room => room.Id == roomId)?.Name}");
+        await Clients.Group(roomId).SendAsync(
+            MessageType.GetNotification.ToString(), 
+            $"Player {Users[userId]} Left!!");
+        await Clients.All.SendAsync(
+            MessageType.GetUpdate.ToString(), OpenRooms);
     }
 
     public async Task RemoveGroup(string roomId, string userId)
     {
         Engine.CloseRoom(roomId, userId);
-        await Clients.All.SendAsync("GetUpdate", OpenRooms);
-        await Clients.Client(userId).SendAsync("GetNotification", $"Room Closed!!");
+        await Clients.All.SendAsync(
+            MessageType.GetUpdate.ToString(), OpenRooms);
+        await Clients.Client(userId).SendAsync(
+            MessageType.GetNotification.ToString(), $"Room Closed!!");
     }
 }

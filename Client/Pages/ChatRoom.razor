@@ -1,3 +1,5 @@
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
 <MudCard Style="height : 50vh;">
     <MudCardHeader>
         <CardHeaderContent>
@@ -43,16 +45,30 @@
     </MudCardContent>
 </MudCard>
 @code {
+    [Parameter] public HubConnection? HubConnection {get; set;}
+    [Parameter] public string RoomId  {get; set;}
+    [Parameter] public string UserId {get; set;}
     private string Message = "";
-    List<(string, int)> headings = new(){ 
-        ("Name", 1),
-        ("Message", 3) 
+    List<(string, int)> headings = new(){
+        ("Sender", 1),
+        ("Message", 4),
     };
-    List<(string, string)> Messages = new(){
-        ("Game", "Game Started")
+    private List<ChatMessage> Messages = new(){
+        new ChatMessage("Game", "Game Started")
     };
 
+    protected override async Task OnInitializedAsync()
+    {
+        HubConnection.On<ChatMessage>("GetMessage", (message) =>
+        {
+            Messages.Add(message);
+            Console.WriteLine("here message received");
+            StateHasChanged();
+        });
+    }
+
     private async Task SendMessage(){
-        Messages.Add(("You", Message));
+            Console.WriteLine("here message sent");
+        await HubConnection.InvokeAsync("SendMessage",UserId, RoomId, Message);
     }
 }

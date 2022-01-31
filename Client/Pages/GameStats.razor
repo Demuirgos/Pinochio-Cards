@@ -1,3 +1,4 @@
+@using Microsoft.AspNetCore.SignalR.Client
 <MudCard Style="height : 50vh;">
     <MudCardHeader>
         <CardHeaderContent>
@@ -8,7 +9,7 @@
             }
         </CardHeaderContent>
         <CardHeaderActions>
-            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+            <MudIconButton OnClick="CloseRoom" Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
         </CardHeaderActions>
     </MudCardHeader>
     <MudCardContent>
@@ -58,7 +59,10 @@
 </MudCard>
 
 @code {
-    [Parameter] public GameState State      {get; set;} = new GameState {
+    [Parameter] public string RoomId {get; set;}
+    [Parameter] public string UserId {get; set;}
+    [Parameter] public HubConnection? HubConnection {get; set;}
+    public GameState State      {get; set;} = new GameState {
         ClaimedCard = 5,
         Deck = Enumerable.Range(0, 100).ToList(),
         Board = new Stack<int>(),
@@ -73,7 +77,7 @@
             )
         }
     };
-    [Parameter] public GameSession Session  {get; set;} = new GameSession {
+    public GameSession Session  {get; set;} = new GameSession {
         RoomName = "Room 1",
         State = PreState.Started,
         Dealer = new Player(
@@ -91,4 +95,8 @@
             )
         }
     };
+
+    private async Task CloseRoom(){
+        await HubConnection.InvokeAsync("StopRoom",UserId, RoomId);
+    }
 }

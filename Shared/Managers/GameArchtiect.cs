@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using Game.Models;
 namespace Game.Architecture;
 public class Manager {
@@ -16,18 +17,27 @@ public class Manager {
                     dealer
                 }
             }, 
-            State : null
+            State : new GameState()
         ));
     }
     public void JoinRoom(string roomId, Player player){
         Rooms[roomId].Session.Add(player);
     }
-    public void QuitRoom(string roomId, Player player){
-        Rooms[roomId].Session.Remove(player);
+    public void QuitRoom(string roomId, string playerId){
+        var playerToBeRemoved = Rooms[roomId].Session.Waiting.FirstOrDefault(p => p.Id == playerId);
+        Rooms[roomId].Session.Remove(playerToBeRemoved);
     }
     public void InitiateRoom(string roomId){
         Rooms[roomId].Session.Pause();
         Rooms[roomId].State.Initiate(Rooms[roomId].Session);
+    }
+
+    public void ResetRoom(string roomId){
+        Rooms[roomId].Session.State = PreState.Pending;
+        Rooms[roomId] = new Metadata(
+            Session : Rooms[roomId].Session,
+            State : new GameState()
+        );
     }
     public void StartGame(string roomId) {
         Rooms[roomId].Session.Start();

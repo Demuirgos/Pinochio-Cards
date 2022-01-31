@@ -24,7 +24,7 @@
                         </CardHeaderContent>
                         <CardHeaderActions>
                             @if(game.OwnerId == ConnectionId){
-                                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+                                <MudIconButton OnClick="@(async () => await InitiateGame(@game.Id))" Icon="@Icons.Filled.Start" Color="Color.Default" />
                             }
                         </CardHeaderActions>
                     </MudCardHeader>
@@ -46,8 +46,8 @@
     </MudGrid>
 </MudPaper>
 @code {
-    [Parameter ] public HubConnection? Connection {get; set;}
-    private string ConnectionId;
+    [Parameter] public HubConnection? Connection {get; set;}
+    [Parameter] public string ConnectionId {get; set;}
     private List<RoomsData> games = new();
     private List<RoomsData> Games => games?.Where(g => g.Id.Contains(searchTerm, StringComparison.InvariantCultureIgnoreCase)).ToList();
     private string searchTerm = "";
@@ -85,5 +85,9 @@
     
     private async Task LeaveRoom(string roomId) {
         await Connection.InvokeAsync("RemoveFromGroup", roomId, ConnectionId);
+    }
+
+    private async Task InitiateGame(string roomId) {
+        await Connection.InvokeAsync("StartRoom", ConnectionId, roomId);
     }
 }
