@@ -7,13 +7,8 @@ namespace Game.Hubs;
 public class GameHub : Hub
 {
     public enum MessageType {
-        GetNotification, 
-        GetUpdate, 
-        GetMessage,
-        GetGameStarted,
-        GetGameEnded,
-        AlterState,
-        GetState
+        GetNotification,  GetUpdate,  GetMessage,
+        GetGameStarted, GetGameEnded, AlterState, GetState
     }
     private static Manager Engine = new Manager();
     private static Dictionary<string, string> Users = new();
@@ -56,7 +51,8 @@ public class GameHub : Hub
     }
 
     public async Task StartRoom(string userId, string roomId){
-        Engine.InitiateRoom(roomId);
+        Engine.InitiateRoom(roomId)
+            .StartGame(roomId);
         await Clients.Group(roomId).SendAsync(
             MessageType.GetNotification.ToString(),  
             $"Room Started room Id : {roomId}");
@@ -74,6 +70,12 @@ public class GameHub : Hub
             MessageType.GetGameEnded.ToString(), roomId);
         await Clients.All.SendAsync(
             MessageType.GetUpdate.ToString(), OpenRooms);
+    }
+
+    public async Task AlterState(string roomId, Message action){
+        Engine.UpdateRoom(roomId, action);
+        await Clients.Group(roomId).SendAsync(
+            MessageType.GetState.ToString(), Engine.Rooms[roomId]);
     }
     public async Task SetupAccount(string userId, string name){
         Users.Add(userId, name);

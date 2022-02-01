@@ -10,14 +10,14 @@ public partial class GameState {
     public int? ClaimedCard { get; set; } = null;
     public List<int> Deck {get; set;} = new();
     public Stack<int> Board {get; set;} = new();
-    public Dictionary<int,List<int>> PlayerDecks {get; set;} = new();
-    public int CurrentPlayer {get; set;} = 0;
+    public Dictionary<string ,List<int>> PlayerDecks {get; set;} = new();
+    public int Turn {get; set;}
     public Room Players {get; set;} = new();
 }
 
 public partial class GameSession {
     public string RoomName {get; set;}
-    public Guid RoomId {get; set;}
+    public string RoomId {get; set;}
     public PreState State {get; set;}
     public Player? Dealer {get; set;}
     public Room? Waiting {get; set;}

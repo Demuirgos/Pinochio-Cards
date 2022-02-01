@@ -10,29 +10,37 @@
         <GameStats HubConnection="@Connection" Room="@Game"/>
         <ChatRoom HubConnection="@Connection" RoomId="@Room" UserId="@User"/>
     </MudDrawer>
+    
     <MudMainContent Class="pt-16 px-16">
         <MudPaper Elevation="2" Height="50vh" Style="margin-top: 1vh;" Class="d-flex justify-center py-2 px-1 mt-6">
-
-        </MudPaper>
-        @if((Game?.State?.Board?.Count() ?? 1) > 0){
-            <MudPaper Elevation="2" Height="7vh" Style="margin-top: 1vh;" Class="d-flex justify-center py-2 px-1 mt-6">
-                <MudGrid>
-                    <MudItem xs="6">
-                        <MudButton OnClick="@(() => ToggleDeck(false))" Variant="Variant.Filled" Color="Color.Primary"   FullWidth="true">Trust Previous Move</MudButton>
-                    </MudItem>
-                    <MudItem xs="6">
-                        <MudButton OnClick="@(() => ToggleDeck(true))" Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true">Doubt Previous Move</MudButton>
-                    </MudItem>
-                </MudGrid>
-            </MudPaper>
-        }
-        <MudPaper Height="28vh" Class="d-flex justify-center py-2 px-1 mt-6" Style="position: relative;">
-            <MudPaper Height="27vh">
-                @foreach(var (idx, card) in Deck){
-                    <CardComponent Number="@card" Style="@margin(idx)" OnClick="@((num) => CardSelected(num))"/>
+            <MudPaper Height="27vh" Width="50vw">
+                @foreach(var (idx, card) in Board){
+                    <CardComponent Number="@card" IsFlipped="false" Style="@margin(idx)" OnClick="@((num) => CardSelected(num))"/>
                 }
             </MudPaper>
-            <MudOverlay Visible="@IsCardDeckLocked" DarkBackground="true" Absolute="true"/>
+        </MudPaper>
+        <MudPaper Style="position :relative">
+            @if((Game?.State?.Board?.Count() ?? 1) > 0){
+                <MudPaper Elevation="2" Height="7vh" Style="margin-top: 1vh;" Class="d-flex justify-center py-2 px-1 mt-6">
+                    <MudGrid>
+                        <MudItem xs="6">
+                            <MudButton OnClick="@(() => ToggleDeck(false))" Variant="Variant.Filled" Color="Color.Primary"   FullWidth="true">Trust Previous Move</MudButton>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudButton OnClick="@(() => ToggleDeck(true))" Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true">Doubt Previous Move</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            }
+            <MudPaper Height="28vh" Class="d-flex justify-center py-2 px-1 mt-6" Style="position: relative;">
+                <MudPaper Height="27vh">
+                    @foreach(var (idx, card) in Deck){
+                        <CardComponent Number="@card" Style="@margin(idx)" OnClick="@((num) => CardSelected(num))"/>
+                    }
+                </MudPaper>
+                <MudOverlay Visible="@IsCardDeckLocked" DarkBackground="true" Absolute="true"/>
+            </MudPaper>
+            <MudOverlay Visible="@IsPlayerTurn" DarkBackground="true" Absolute="true"/>
         </MudPaper>
     </MudMainContent>
 </MudLayout>
@@ -44,7 +52,7 @@
     [Parameter ] public Metadata Game {get; set;}
     private int? SelectedCard = null;
     bool IsSidebarOpened = false, IsCardDeckLocked = false;
-
+    bool IsPlayerTurn => Game?.State?.CurrentPlayer != User;
     protected override async Task OnInitializedAsync()
     {
         Connection.On<Metadata>("GetState", (state) =>
@@ -53,25 +61,39 @@
             StateHasChanged();
         });
         Game = await Connection.InvokeAsync<Metadata>("GetRoom", Room);
+        Console.WriteLine(Game is null);
+        Console.WriteLine(Game?.State is null);
+        Console.WriteLine(Game?.State?.CurrentPlayer);
+        Console.WriteLine(User);
+        StateHasChanged();
     }
 
-    void ToggleDeck(bool status) {
-        IsCardDeckLocked = status;
-        if(!status) {
-
-        }
+    private async Task ToggleDeck(bool status) {
+        if(status)
+            await Connection.InvokeAsync("AlterState", Room, new Message {
+                Action = ActionType.QuestionCredibility,
+                PlayerId  = User
+            });
+        else 
+            IsCardDeckLocked = status;
     }
 
     private async Task ConfirmCard()
     {
         var parameters = new DialogParameters();
         parameters.Add("Number", SelectedCard);
+        parameters.Add("ClaimedCard", Game?.State?.ClaimedCard ?? 0);
         var dialog = DialogService.Show<ConfirmCard>("Confirm Move", parameters, new DialogOptions { CloseOnEscapeKey = true });
         var result = await dialog.Result;
         if (!result.Cancelled)
         {
-            var ClaimedCard = result.Data.ToString();
-            Console.WriteLine(ClaimedCard);
+            var ClaimedCard = result.Data;
+            await Connection.InvokeAsync("AlterState", Room, new Message {
+                Action = ActionType.PlaceCard,
+                PlayerId  = User,
+                Card  = SelectedCard.Value,
+                Claim = (int)ClaimedCard
+            });
         }
     }
 
@@ -86,6 +108,7 @@
         SelectedCard = num;
         await ConfirmCard();
     }
-    private List<(int, int)> Deck => Enumerable.Range(0,14).Select((v, i) => (i, v)).ToList();
+    private List<(int, int)> Deck => Game?.State?.PlayerDecks[User]?.Select((v, i) => (i, v)).ToList() ?? new List<(int, int)>();
+    private List<(int, int)> Board => Game?.State?.Board?.Select((v, i) => (i, v)).ToList() ?? new List<(int, int)>();
     private string margin(int idx) => idx == 0 ?  "margin : 10px;" :  "margin : 10px; margin-left : -75px;";
 }

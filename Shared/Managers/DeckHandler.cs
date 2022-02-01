@@ -7,7 +7,7 @@ public static class CardsActions {
     private static List<int> Duplicate(int value, int times)
         => Enumerable.Range(0, times).Select(_ => value).ToList();
     public static List<int> Fill(int playerCount) 
-        => Enumerable.Range(1, 10).Select(i => Duplicate(value: i, times:playerCount))
+        => Enumerable.Range(1, 10 + 1).Select(i => Duplicate(value: i, times:playerCount))
                     .Aggregate(new List<int>(), (left, right) => {
                         left.AddRange(right);
                         return left;
@@ -17,19 +17,12 @@ public static class CardsActions {
         => deck.OrderBy(_ => rng.Next()).ToList();
     public static List<int[]> Split(this List<int> deck, int size) 
         => deck.Count % size == 0 ? deck.Chunk(deck.Count / size).ToList() : throw new Exception($"Cant split deck into {size} equal pieces");
-    public static Dictionary<int, List<int>> Distribute(int playerCount)
-        => Fill(playerCount)
-        .Split(playerCount)
-        .Select((d, i) => new {
-            PLayer = i, 
-            Deck = d.ToList()
-        }).ToDictionary(hande => hande.PLayer, hand => hand.Deck);
-    public static (List<int>, Dictionary<int, List<int>>) Distribute(this List<int> deck, int playerCount)
-        => (
-            new List<int>(), 
-            deck.Split(playerCount)
-                .Select((d, i) => new {
-                    PLayer = i, 
-                    Deck = d.ToList()
-                }).ToDictionary(hande => hande.PLayer, hand => hand.Deck));
+    public static (List<int>, Dictionary<string, List<int>>) Distribute(this List<int> deck, List<Player> players)
+        => (new List<int>(), 
+            deck.Split(players.Count)
+                .Zip(players)
+                .Select(deck => new {
+                    PLayer = deck.Item2.Id, 
+                    Deck = deck.Item1.ToList()
+                }).ToDictionary(hand => hand.PLayer, hand => hand.Deck));
 }

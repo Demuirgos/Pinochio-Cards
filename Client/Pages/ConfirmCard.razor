@@ -1,26 +1,21 @@
 <MudDialog>
     <DialogContent>
-        <MudGrid>
-            <MudItem xs="7">
-                <MudNumericField 
-                    T="int"
-                    label="Claim Number"
-                    @bind-value="@ClaimedCard"
-                />
-            </MudItem>
-            <MudItem xs="5">
-                <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
-                     <MudTabPanel Text="Chosen Card">
-                        <CardComponent Number="@Number"/>
-                    </MudTabPanel>
-                    @if(ClaimedCard != 0){
-                        <MudTabPanel Text="Claimed Card">
-                            <CardComponent Number="@ClaimedCard"/>
-                        </MudTabPanel>
-                    }
-                </MudTabs>
-            </MudItem>
-        </MudGrid>
+        <MudNumericField 
+            T="int"
+            label="Claim Number"
+            @bind-value="@ClaimedCard"
+            Disabled="@(ClaimedCard  != 0)"
+        />
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+            <MudTabPanel Text="Chosen Card">
+                <CardComponent Number="@Number"/>
+            </MudTabPanel>
+            <MudTabPanel Text="Claimed Card">
+                @if(ClaimedCard != 0){
+                        <CardComponent Number="@ClaimedCard"/>
+                }
+            </MudTabPanel>
+        </MudTabs>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
@@ -30,7 +25,7 @@
 @code {
     [CascadingParameter] MudDialogInstance MudDialog { get; set; }
     [Parameter] public int Number { get; set; }
-    public int ClaimedCard { get; set; } = 0;
+    [Parameter] public int ClaimedCard { get; set; }
     void Submit() => MudDialog.Close(DialogResult.Ok(ClaimedCard));
     void Cancel() => MudDialog.Cancel();
 }

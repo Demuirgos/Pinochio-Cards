@@ -6,7 +6,7 @@ public partial class GameSession
 {
     public GameSession Create(Player dealer){
         return new GameSession {
-            RoomId = Guid.NewGuid(),
+            RoomId = Guid.NewGuid().ToString(),
             State = PreState.Pending,
             Dealer = dealer,
             Waiting = new()
