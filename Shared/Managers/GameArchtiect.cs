@@ -36,6 +36,8 @@ public class Manager {
         return this;
     }
     public Manager InitiateRoom(string roomId){
+        if(Rooms[roomId].Session.Waiting.Count < 4 )
+            throw new Exception("Game Cannot start with players < 4") ;
         Rooms[roomId].Session.Pause();
         Rooms[roomId].State.Initiate(Rooms[roomId].Session);
         return this;
@@ -50,6 +52,8 @@ public class Manager {
         return this;
     }
     public Manager StartGame(string roomId) {
+        if(Rooms[roomId].Session.Waiting.Count < 4 )
+            throw new Exception("Game Cannot start with players < 4") ;
         Rooms[roomId].Session.Start();
         Rooms[roomId].State.Start();
         return this;

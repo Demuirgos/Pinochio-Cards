@@ -1,17 +1,18 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @if(Room is not null){
-
     <MudCard Style="height : 50vh;">
         <MudCardHeader>
             <CardHeaderContent>
                 @if(Room?.State?.ClaimedCard is not null){
                     <MudText Typo="Typo.h6">Claimed Card : @Room?.State?.ClaimedCard</MudText>
                 } else {
-                    <MudText Typo="Typo.h6">Game Room?.State : @Room?.Session?.State</MudText>
+                    <MudText Typo="Typo.h6">Game : @Room?.Session?.State</MudText>
                 }
             </CardHeaderContent>
             <CardHeaderActions>
+            @if(ShowClose){
                 <MudIconButton OnClick="CloseRoom" Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+            }
             </CardHeaderActions>
         </MudCardHeader>
         <MudCardContent>
@@ -66,6 +67,7 @@
 @code {
     [Parameter] public HubConnection? HubConnection {get; set;}
     [Parameter] public Metadata Room {get; set;}
+    [Parameter] public bool ShowClose {get; set;}
 
     private async Task CloseRoom(){
         await HubConnection.InvokeAsync("StopRoom",Room?.Session?.Dealer?.Id, Room?.Session?.RoomId);

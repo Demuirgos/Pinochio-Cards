@@ -1,7 +1,9 @@
 @page "/"
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager NavigationManager
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" />
 @if(roomId is null){
+    <MudSwitch Icon="@Icons.Custom.Brands.GitHub" @bind-Checked="@_isDarkMode" Color="Color.Primary" Class="ma-4" T="bool" Label="Toggle Light/Dark Mode"/>
     <CreateAccount Connection="@hubConnection"/>
     <AvailableGames Connection="@hubConnection" ConnectionId="@connectionId"/>
 } else {
@@ -10,6 +12,7 @@
 
 @code {
     private HubConnection? hubConnection;
+    private bool _isDarkMode = true;
     private string connectionId;
     private string? roomId;
     private string? RoomId {
