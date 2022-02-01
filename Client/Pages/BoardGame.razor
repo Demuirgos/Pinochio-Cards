@@ -7,7 +7,10 @@
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
     </MudAppBar>
     <MudDrawer @bind-Open="@IsSidebarOpened" Elevation="1" Width="50vw">
-        <GameStats HubConnection="@Connection" Room="@Game"/>
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">@Game?.Session?.RoomName</MudText>
+        </MudDrawerHeader>
+        <GameStats HubConnection="@Connection" Room="@Game" ShowClose="@IsPlayerDealer"/>
         <ChatRoom HubConnection="@Connection" RoomId="@Room" UserId="@User"/>
     </MudDrawer>
     
@@ -53,6 +56,7 @@
     private int? SelectedCard = null;
     bool IsSidebarOpened = false, IsCardDeckLocked = false;
     bool IsPlayerTurn => Game?.State?.CurrentPlayer != User;
+    bool IsPlayerDealer => Game?.Session?.Dealer?.Id == User;
     protected override async Task OnInitializedAsync()
     {
         Connection.On<Metadata>("GetState", (state) =>
@@ -60,6 +64,7 @@
             Game = state;
             StateHasChanged();
         });
+    
         Game = await Connection.InvokeAsync<Metadata>("GetRoom", Room);
         Console.WriteLine(Game is null);
         Console.WriteLine(Game?.State is null);

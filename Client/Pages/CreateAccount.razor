@@ -21,7 +21,7 @@
             <MudGrid>
                 <MudItem xs="8">
                     <MudExpansionPanel Text="Creation Errors" MaxHeight="150">
-                        <MudPaper Class="pa-4 mud-height-full">
+                        <MudPaper Class="pa-4 mud-height-full" Height="15vh" Style="overflow-y:scroll;">
                             <MudText Typo="Typo.subtitle2">Validation Summary</MudText>
                             @foreach(var message in Notifications){
                                 <MudText Color="Color.Primary">@message</MudText>

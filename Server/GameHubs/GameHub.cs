@@ -35,31 +35,44 @@ public class GameHub : Hub
                 MessageType.GetMessage.ToString(), 
                 new ChatMessage(Users[userId], message));
     public async Task SetupRoom(string userId, string roomId, string roomName){
-        Engine.CreateRoom(
-            dealer : new Player(userId, Users[userId]),
-            name : roomName,
-            connectionId : roomId
-        );
-        await Groups.AddToGroupAsync(userId, roomId);
+        try
+        {
+            Engine.CreateRoom(
+                dealer : new Player(userId, Users[userId]),
+                name : roomName,
+                connectionId : roomId
+            );
+            await Groups.AddToGroupAsync(userId, roomId);
 
-        await Clients.Client(userId).SendAsync(
-            MessageType.GetNotification.ToString(), 
-            $"Room Created room Id : {roomId}");
-        await Clients.All.SendAsync(
-            MessageType.GetUpdate.ToString(), 
-            OpenRooms);
+            await Clients.Client(userId).SendAsync(
+                MessageType.GetNotification.ToString(), 
+                $"Room Created room Id : {roomId}");
+            await Clients.All.SendAsync(
+                MessageType.GetUpdate.ToString(), 
+                OpenRooms);
+        }
+        catch (System.Exception e)
+        {
+            await Clients.Clients(userId).SendAsync(
+                MessageType.GetNotification.ToString(), e.Message);
+        }
     }
 
     public async Task StartRoom(string userId, string roomId){
-        Engine.InitiateRoom(roomId)
-            .StartGame(roomId);
-        await Clients.Group(roomId).SendAsync(
-            MessageType.GetNotification.ToString(),  
-            $"Room Started room Id : {roomId}");
-        await Clients.Group(roomId).SendAsync(
-            MessageType.GetGameStarted.ToString(), roomId);
-        await Clients.All.SendAsync(
-            MessageType.GetUpdate.ToString(), OpenRooms);
+        try{
+            Engine.InitiateRoom(roomId)
+                .StartGame(roomId);
+            await Clients.Group(roomId).SendAsync(
+                MessageType.GetNotification.ToString(),  
+                $"Room Started room Id : {roomId}");
+            await Clients.Group(roomId).SendAsync(
+                MessageType.GetGameStarted.ToString(), roomId);
+            await Clients.All.SendAsync(
+                MessageType.GetUpdate.ToString(), OpenRooms);
+        } catch(Exception e){
+            await Clients.Group(roomId).SendAsync(
+                MessageType.GetNotification.ToString(), e.Message);
+        }
     }
     public async Task StopRoom(string userId, string roomId){
         Engine.ResetRoom(roomId);
@@ -73,14 +86,24 @@ public class GameHub : Hub
     }
 
     public async Task AlterState(string roomId, Message action){
-        Engine.UpdateRoom(roomId, action);
-        await Clients.Group(roomId).SendAsync(
-            MessageType.GetState.ToString(), Engine.Rooms[roomId]);
+        try{
+            Engine.UpdateRoom(roomId, action);
+            await Clients.Group(roomId).SendAsync(
+                MessageType.GetState.ToString(), Engine.Rooms[roomId]);
+        } catch(Exception e) {
+            await Clients.Clients(action.PlayerId).SendAsync(
+                MessageType.GetNotification.ToString(), e.Message);
+        }
     }
     public async Task SetupAccount(string userId, string name){
-        Users.Add(userId, name);
-        await Clients.Client(Context.ConnectionId).SendAsync(
-            MessageType.GetNotification.ToString(), $"Account Created");
+        try{
+            Users.Add(userId, name);
+            await Clients.Client(Context.ConnectionId).SendAsync(
+                MessageType.GetNotification.ToString(), $"Account Created");
+        } catch(Exception e) {
+            await Clients.Clients(userId).SendAsync(
+                MessageType.GetNotification.ToString(), e.Message);
+        }
     }
     public async Task AddToGroup(string roomId, string userId)
     {

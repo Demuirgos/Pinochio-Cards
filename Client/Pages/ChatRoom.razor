@@ -58,7 +58,11 @@
         HubConnection.On<ChatMessage>("GetMessage", (message) =>
         {
             Messages.Add(message);
-            Console.WriteLine("here message received");
+            StateHasChanged();
+        });
+        HubConnection.On<string>("GetNotification", (notification) =>
+        {
+            Messages.Add(new ChatMessage("Game", notification));
             StateHasChanged();
         });
     }
