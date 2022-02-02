@@ -1,0 +1,11 @@
+version: '3.4'
+
+services:
+  blazor:
+    image: liar-image
+    build:
+      context: .
+      dockerfile: Server/Dockerfile
+    ports:
+        - 6080:80
+        - 6443:443

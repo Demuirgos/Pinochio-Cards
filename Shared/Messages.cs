@@ -11,4 +11,5 @@ public record Message{
     public int Card { get; init; }
     public int Claim {get; set; }
 }
+public record Indicator(int Severity, string Message);
 public record ChatMessage(string sender, string message);

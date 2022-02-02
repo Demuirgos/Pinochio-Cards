@@ -2,6 +2,8 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
@@ -35,7 +37,7 @@
                     </MudGrid>
                 </MudPaper>
             }
-            <MudPaper Height="28vh" Class="d-flex justify-center py-2 px-1 mt-6" Style="position: relative;">
+            <MudPaper Height="28vh"  Class="d-flex justify-center py-2 px-1 mt-6" Style="position: relative; overflow-x:scroll;">
                 <MudPaper Height="27vh">
                     @foreach(var (idx, card) in Deck){
                         <CardComponent Number="@card" Style="@margin(idx)" OnClick="@((num) => CardSelected(num))"/>
@@ -64,21 +66,36 @@
             Game = state;
             StateHasChanged();
         });
-    
+        Connection.On<Indicator>("GetIndicator", (indicator) =>
+        {
+            switch (indicator.Severity)
+            {
+                case 1 :
+                    Snackbar.Add(indicator.Message, Severity.Info);
+                    break;
+                case 2 :
+                    Snackbar.Add(indicator.Message, Severity.Success);
+                    break;
+                case 3 :
+                    Snackbar.Add(indicator.Message, Severity.Error);
+                    break;
+                case 4 :
+                    Snackbar.Add(indicator.Message, Severity.Warning);
+                    break;
+            }
+            StateHasChanged();
+        });
         Game = await Connection.InvokeAsync<Metadata>("GetRoom", Room);
-        Console.WriteLine(Game is null);
-        Console.WriteLine(Game?.State is null);
-        Console.WriteLine(Game?.State?.CurrentPlayer);
-        Console.WriteLine(User);
         StateHasChanged();
     }
 
     private async Task ToggleDeck(bool status) {
-        if(status)
+        if(status) {
             await Connection.InvokeAsync("AlterState", Room, new Message {
                 Action = ActionType.QuestionCredibility,
                 PlayerId  = User
             });
+        }
         else 
             IsCardDeckLocked = status;
     }

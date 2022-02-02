@@ -64,4 +64,9 @@ public class Manager {
             Rooms.Remove(roomId);
         return this;
     }
+
+    public Manager FreeRooms(){
+        Rooms = Rooms.Where(r => r.Value.State.Players.Count !=0).ToDictionary(r => r.Key, r => r.Value);
+        return this;
+    }
 }

@@ -23,11 +23,10 @@ public partial class GameState
     }
     public GameState Update (Message message)
     {
-        if(message.PlayerId != this.CurrentPlayer)
+        if(message.Action != ActionType.ForfeitTurn && message.PlayerId != this.CurrentPlayer)
             throw new Exception("It's not your turn");
         Func<GameState> handler = message.Action switch {
             ActionType.PlaceCard => () => {
-                System.Console.WriteLine(PlayerDecks.Count);
                 this.PlayerDecks[this.CurrentPlayer].Remove(message.Card);
                 this.ClaimedCard = this.Board.Count > 0 ? this.ClaimedCard : message.Claim;
                 this.Board.Push(message.Card);
@@ -49,7 +48,20 @@ public partial class GameState
                 this.ClaimedCard = null;
                 return HandleBurns();
             },
-            ActionType.ForfeitTurn => throw new NotImplementedException(),
+            ActionType.ForfeitTurn => () => {
+                var burntDeck = this.PlayerDecks[message.PlayerId];
+                //remove player from room
+                this.Players.Remove(this.Players.First(p => p.Id == message.PlayerId));
+                this.PlayerDecks.Remove(message.PlayerId);
+                //distribute his cards to other players
+                int idx = 0;
+                while(burntDeck.Count > 0){
+                    this.PlayerDecks[this.Players[idx].Id].Add(burntDeck.Last());
+                    burntDeck.RemoveAt(burntDeck.Count - 1);
+                    idx = (idx + 1) % this.Players.Count;
+                }
+                return HandleBurns();
+            },
             _ => throw new NotImplementedException()
         };
         return handler();

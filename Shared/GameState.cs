@@ -22,8 +22,3 @@ public partial class GameSession {
     public Player? Dealer {get; set;}
     public Room? Waiting {get; set;}
 }
-
-// we have the stack in the board
-// we have each players deque
-// we have the full deque
-// we have the current player
