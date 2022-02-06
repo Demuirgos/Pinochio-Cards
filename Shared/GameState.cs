@@ -5,7 +5,7 @@ namespace Game.Models;
 public enum PreState { Started, Halted, Pending }
 public record Player(string Id, string Name);
 public record Metadata(GameSession Session, GameState? State);
-public record RoomsData(string Id, string OwnerId, string Name, string[] Members, int Size, PreState State);
+public record RoomsData(string Id, bool IsPrivate, string Password, string OwnerId, string Name, string[] Members, int Size, PreState State);
 public partial class GameState {
     public int? ClaimedCard { get; set; } = null;
     public List<int> Deck {get; set;} = new();
@@ -16,6 +16,11 @@ public partial class GameState {
 }
 
 public partial class GameSession {
+    public enum Type {
+        Locked, Public
+    }
+    public Type SessionType {get; set;}
+    public string Password {get; set;}
     public string RoomName {get; set;}
     public string RoomId {get; set;}
     public PreState State {get; set;}

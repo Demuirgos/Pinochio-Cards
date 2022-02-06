@@ -68,7 +68,7 @@
     }
 
     private async Task SendMessage(){
-            Console.WriteLine("here message sent");
         await HubConnection.InvokeAsync("SendMessage",UserId, RoomId, Message);
+        Message = "";
     }
 }

@@ -17,7 +17,7 @@
         </MudAppBar>
         @foreach(var game in Games){
             <MudItem xs="6" sm="3">
-                <MudCard>
+                <MudCard Height="30vh" Style="overflow-y:scroll;">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">@game.Name</MudText>
@@ -31,6 +31,10 @@
                     <MudCardContent>
                         <MudText>this game is : @game.State</MudText>
                         <MudText Typo="Typo.body2">this game has : @game.Size players</MudText>
+                        @if(!game.Members.Contains(ConnectionId) && game.IsPrivate){
+                            <MudTextField Label="password" HelperText="password" Class="mt-3"
+                                @bind-Value="password"/>
+                        }
                     </MudCardContent>
                     <MudCardActions>
                         @if(game.Members.Contains(ConnectionId)){
@@ -51,6 +55,7 @@
     private List<RoomsData> games = new();
     private List<RoomsData> Games => games?.Where(g => g.Id.Contains(searchTerm, StringComparison.InvariantCultureIgnoreCase)).ToList();
     private string searchTerm = "";
+    private string   password = "";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -76,7 +81,8 @@
     }
 
     private async Task JoinRoom(string roomId){
-        await Connection.InvokeAsync("AddToGroup", roomId, ConnectionId);
+        await Connection.InvokeAsync("AddToGroup", roomId, ConnectionId, password);
+        password = "";
     }
 
     private async Task<bool> CheckMembership(string roomId) {

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Data;
 using System.Security.Cryptography.X509Certificates;
 using Game.Models;
@@ -9,12 +10,14 @@ public class Manager {
         Rooms[roomId].State.Update(message);
         return this;
     }
-    public Manager CreateRoom(Player dealer, string name, string connectionId){
+    public Manager CreateRoom(Player dealer, string name, string connectionId, bool isLocked, string password){
         if(Rooms?.Values?.Where((m) => m.Session.Dealer == dealer).Any() ?? false)
             throw new Exception("A dealer can only Have one Room");
         Rooms?.Add(connectionId , new Metadata(
             Session : new GameSession {
                 RoomName = name,
+                SessionType = isLocked ? GameSession.Type.Locked : GameSession.Type.Public,
+                Password = password,
                 RoomId = connectionId,
                 State = PreState.Pending,
                 Dealer = dealer,
@@ -26,9 +29,19 @@ public class Manager {
         ));
         return this;
     }
-    public Manager JoinRoom(string roomId, Player player){
-        Rooms[roomId].Session.Add(player);
-        return this;
+    public Manager JoinRoom(string roomId, Player player, string? password = null){
+        switch (Rooms[roomId].Session.SessionType)
+        {
+            case GameSession.Type.Locked :
+                if(Rooms[roomId].Session.Password == password)
+                    Rooms[roomId].Session.Add(player);
+                else throw new Exception($"Room Password Incorrect");
+                return this;
+            case GameSession.Type.Public :
+                Rooms[roomId].Session.Add(player);
+                return this;
+            default : return this;
+        }
     }
     public Manager QuitRoom(string roomId, string playerId){
         var playerToBeRemoved = Rooms[roomId].Session.Waiting.FirstOrDefault(p => p.Id == playerId);

@@ -17,6 +17,8 @@ public class GameHub : Hub
         =>  Engine?.Rooms?.Select(
                 room => new RoomsData(
                         Id : room.Key,
+                        Password : room.Value.Session.Password,
+                        IsPrivate : room.Value.Session.SessionType == GameSession.Type.Locked,
                         OwnerId : room.Value.Session.Dealer.Id,
                         Name : room.Value.Session.RoomName,
                         Members : room.Value.Session.Waiting.Select(p => p.Id).ToArray(), 
@@ -46,13 +48,15 @@ public class GameHub : Hub
         =>  await Clients.Group(roomId).SendAsync(
                 MessageType.GetMessage.ToString(), 
                 new ChatMessage(Users[userId], message));
-    public async Task SetupRoom(string userId, string roomId, string roomName){
+    public async Task SetupRoom(string userId, string roomId, string roomName, string password){
         try
         {
             Engine.CreateRoom(
                 dealer : new Player(userId, Users[userId]),
                 name : roomName,
-                connectionId : roomId
+                connectionId : roomId,
+                isLocked : !String.IsNullOrWhiteSpace(password),
+                password : password
             );
             await Groups.AddToGroupAsync(userId, roomId);
 
@@ -137,29 +141,35 @@ public class GameHub : Hub
                 MessageType.GetNotification.ToString(), e.Message);
         }
     }
-    public async Task AddToGroup(string roomId, string userId)
+    public async Task AddToGroup(string roomId, string userId, string password)
     {
-        if(Users.ContainsKey(userId)) {
-            OpenRooms
-                .Where(r => r.Id != roomId || r.OwnerId != userId)
-                .ToList().ForEach(async room => {
-                    await RemoveFromGroup(room.Id, userId);
-                    Engine.QuitRoom(room.Id, userId );
-                });
-            
-            Engine.JoinRoom(roomId, new Player(userId, Users[userId]));
-            await Groups.AddToGroupAsync(userId, roomId);
-            await Clients.Client(userId).SendAsync(
-                MessageType.GetNotification.ToString(), 
-                $"You Joined Room {OpenRooms?.Find(room => room.Id == roomId)?.Name}");
-            await Clients.Group(roomId).SendAsync(
-                MessageType.GetNotification.ToString(), 
-                $"Player {Users[userId]} Joined!!");
-            await Clients.All.SendAsync(
-                MessageType.GetUpdate.ToString(), OpenRooms);
-        } else {
+        try{
+
+            if(Users.ContainsKey(userId)) {
+                OpenRooms
+                    .Where(r => r.Id != roomId || r.OwnerId != userId)
+                    .ToList().ForEach(async room => {
+                        await RemoveFromGroup(room.Id, userId);
+                        Engine.QuitRoom(room.Id, userId );
+                    });
+                
+                Engine.JoinRoom(roomId, new Player(userId, Users[userId]), password);
+                await Groups.AddToGroupAsync(userId, roomId);
+                await Clients.Client(userId).SendAsync(
+                    MessageType.GetNotification.ToString(), 
+                    $"You Joined Room {OpenRooms?.Find(room => room.Id == roomId)?.Name}");
+                await Clients.Group(roomId).SendAsync(
+                    MessageType.GetNotification.ToString(), 
+                    $"Player {Users[userId]} Joined!!");
+                await Clients.All.SendAsync(
+                    MessageType.GetUpdate.ToString(), OpenRooms);
+            } else {
+                await Clients.Clients(userId).SendAsync(
+                    MessageType.GetNotification.ToString(), "Create Account First");
+            }
+        } catch(Exception e) {
             await Clients.Clients(userId).SendAsync(
-                MessageType.GetNotification.ToString(), "Create Account First");
+                MessageType.GetNotification.ToString(), e.Message);
         }
     }
 

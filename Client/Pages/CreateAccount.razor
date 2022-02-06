@@ -10,11 +10,13 @@
                         @bind-Value="model.Id" Disabled="true"/>
             <MudTextField Label="PLayer Name" HelperText="Choose your name" Class="mt-3"
                         @bind-Value="model.PlayerName" For="@(() => model.PlayerName)"/>
-            <MudExpansionPanel Text="Create Room" MaxHeight="150">
+            <MudExpansionPanel Text="Create Room" MaxHeight="150" Style="overflow-y:scroll;" >
                 <MudTextField Label="Room Name" HelperText="Max. 8 characters"
                             @bind-Value="model.RoomName" For="@(() => model.RoomName)"/>
                 <MudTextField Label="Player Count" Class="mt-3"
                             @bind-Value="model.PlayerCount" For="@(() => model.PlayerCount)"/>
+                <MudTextField Label="Password" Class="mt-3"
+                            @bind-Value="model.Password" For="@(() => model.Password)"/>
             </MudExpansionPanel>
         </MudCardContent>
         <MudCardActions>
@@ -83,6 +85,8 @@
 
         [Range(4, 8, ErrorMessage = "Value for {0} must be between {1} and {2}.")]
         public string PlayerCount { get; set; }
+
+        public string Password { get; set; }
     }
 
     private async Task OnRegisterClick(RegisterAccountForm context)
@@ -94,7 +98,7 @@
 
     private async Task OnCreateClick(RegisterAccountForm context){
         success = true;
-        await Connection.SendAsync("SetupRoom", context.Id, Guid.NewGuid().ToString(), context.RoomName);
+        await Connection.SendAsync("SetupRoom", context.Id, Guid.NewGuid().ToString(), context.RoomName, context.Password);
         StateHasChanged();
     }
 }
