@@ -23,7 +23,7 @@ public partial class GameState
         List<int> BurnedCards = new();
         foreach (var (id, deck) in PlayerDecks)
         {
-            var ToBeBurned = deck.GroupBy(i => i).Where(g => g.Count() % this.Players.Count == 0).Select(g => g.Key).ToList();
+            var ToBeBurned = deck.GroupBy(i => i).Where(g => g.Count() % this.DupCount == 0).Select(g => g.Key).ToList();
             PlayerDecks[id].RemoveAll(i => ToBeBurned.Contains(i));
             BurnedCards.AddRange(ToBeBurned);
         }
