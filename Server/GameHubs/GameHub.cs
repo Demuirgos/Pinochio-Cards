@@ -132,7 +132,7 @@ public class GameHub : Hub
         {
             await Clients.Group(roomId).SendAsync(
                 MessageType.GetNotification.ToString(), end.Message(Users[end.WinnerID]));
-            await Task.Delay(2000);
+            await Task.Delay(10*1000);
             await Clients.Group(roomId).SendAsync(
                 MessageType.GetGameEnded.ToString(), roomId);
             

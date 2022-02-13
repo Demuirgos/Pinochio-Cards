@@ -13,7 +13,7 @@
             <MudExpansionPanel Text="Create Room" MaxHeight="150" Style="overflow-y:scroll;" >
                 <MudTextField Label="Room Name" HelperText="Max. 8 characters"
                             @bind-Value="model.RoomName" For="@(() => model.RoomName)"/>
-                <MudTextField Label="Player Count" Class="mt-3"
+                <MudNumericField T="int" Label="Player Count" Class="mt-3"
                             @bind-Value="model.PlayerCount" For="@(() => model.PlayerCount)"/>
                 <MudTextField Label="Password" Class="mt-3"
                             @bind-Value="model.Password" For="@(() => model.Password)"/>
@@ -84,7 +84,7 @@
         public string RoomName { get; set; }
 
         [Range(4, 8, ErrorMessage = "Value for {0} must be between {1} and {2}.")]
-        public string PlayerCount { get; set; }
+        public int PlayerCount { get; set; } = 4;
 
         public string Password { get; set; }
     }
