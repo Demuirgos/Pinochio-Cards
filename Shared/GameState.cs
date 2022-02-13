@@ -9,6 +9,7 @@ public record RoomsData(string Id, bool IsPrivate, string Password, string Owner
 public partial class GameState {
     public int? ClaimedCard { get; set; } = null;
     public List<int> Deck {get; set;} = new();
+    public int DupCount {get; set;} = 4;
     public Stack<int> Board {get; set;} = new();
     public Dictionary<string ,List<int>> PlayerDecks {get; set;} = new();
     public int Turn {get; set;}
@@ -22,6 +23,7 @@ public partial class GameSession {
     public Type SessionType {get; set;}
     public string Password {get; set;}
     public string RoomName {get; set;}
+    public int PlayerCount {get; set;}
     public string RoomId {get; set;}
     public PreState State {get; set;}
     public Player? Dealer {get; set;}

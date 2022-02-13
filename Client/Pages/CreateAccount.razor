@@ -98,7 +98,7 @@
 
     private async Task OnCreateClick(RegisterAccountForm context){
         success = true;
-        await Connection.SendAsync("SetupRoom", context.Id, Guid.NewGuid().ToString(), context.RoomName, context.Password);
+        await Connection.SendAsync("SetupRoom", context.Id, Guid.NewGuid().ToString(), context.RoomName, context.Password, context.PlayerCount);
         StateHasChanged();
     }
 }

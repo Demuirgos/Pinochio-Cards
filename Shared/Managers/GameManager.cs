@@ -1,8 +1,17 @@
 namespace Game.Models;
+[System.Serializable]
+public class GameEndedException : System.Exception{
+    public String WinnerID { get; set; }
+    public GameEndedException(String winnerID) {
+        WinnerID = winnerID;
+    }
+    public string Message(string name) => $"The winner is {name}";
+}
 public partial class GameState 
 {
     public void Initiate(GameSession session) {
         this.ClaimedCard = null;
+        this.DupCount = session.PlayerCount;
         this.Deck = CardsActions.Fill(session.Waiting.Count);
         this.Players = session.Waiting;  
     } 
@@ -14,13 +23,20 @@ public partial class GameState
         List<int> BurnedCards = new();
         foreach (var (id, deck) in PlayerDecks)
         {
-            var ToBeBurned = deck.GroupBy(i => i).Where(g => g.Count() == this.Players.Count).Select(g => g.Key).ToList();
+            var ToBeBurned = deck.GroupBy(i => i).Where(g => g.Count() % this.Players.Count == 0).Select(g => g.Key).ToList();
             PlayerDecks[id].RemoveAll(i => ToBeBurned.Contains(i));
             BurnedCards.AddRange(ToBeBurned);
         }
         this.Deck.AddRange(BurnedCards);
         return this;
     }
+
+    public GameState CheckEnd() {
+        foreach (var player in PlayerDecks)
+            if(player.Value.Count == 0) throw new GameEndedException(player.Key); // workarround 
+        return this;
+    }
+
     public GameState Update (Message message)
     {
         if(message.Action != ActionType.ForfeitTurn && message.PlayerId != this.CurrentPlayer)
@@ -31,7 +47,7 @@ public partial class GameState
                 this.ClaimedCard = this.Board.Count > 0 ? this.ClaimedCard : message.Claim;
                 this.Board.Push(message.Card);
                 this.Turn = this.NextPlayer;
-                return HandleBurns();
+                return HandleBurns().CheckEnd();
             },
             ActionType.QuestionCredibility => () => {
                 var (currClaim, currCard) = (this.ClaimedCard, this.Board.Peek());
@@ -46,7 +62,7 @@ public partial class GameState
                     }
                 }
                 this.ClaimedCard = null;
-                return HandleBurns();
+                return HandleBurns().CheckEnd();
             },
             ActionType.ForfeitTurn => () => {
                 var burntDeck = this.PlayerDecks[message.PlayerId];
@@ -60,7 +76,7 @@ public partial class GameState
                     burntDeck.RemoveAt(burntDeck.Count - 1);
                     idx = (idx + 1) % this.Players.Count;
                 }
-                return HandleBurns();
+                return HandleBurns().CheckEnd();
             },
             _ => throw new NotImplementedException()
         };

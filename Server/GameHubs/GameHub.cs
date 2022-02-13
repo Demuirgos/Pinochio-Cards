@@ -48,11 +48,12 @@ public class GameHub : Hub
         =>  await Clients.Group(roomId).SendAsync(
                 MessageType.GetMessage.ToString(), 
                 new ChatMessage(Users[userId], message));
-    public async Task SetupRoom(string userId, string roomId, string roomName, string password){
+    public async Task SetupRoom(string userId, string roomId, string roomName, string password, int roomSize){
         try
         {
             Engine.CreateRoom(
                 dealer : new Player(userId, Users[userId]),
+                dups : roomSize,
                 name : roomName,
                 connectionId : roomId,
                 isLocked : !String.IsNullOrWhiteSpace(password),
@@ -126,7 +127,17 @@ public class GameHub : Hub
             await Clients.Group(roomId).SendAsync(
                 MessageType.GetState.ToString(), Engine.Rooms[roomId]);
             await SendGameIndicators(state.CurrentPlayer, state.ClaimedCard);
-        } catch(Exception e) {
+        } 
+        catch (GameEndedException end)
+        {
+            await Clients.Group(roomId).SendAsync(
+                MessageType.GetNotification.ToString(), end.Message(Users[end.WinnerID]));
+            await Task.Delay(2000);
+            await Clients.Group(roomId).SendAsync(
+                MessageType.GetGameEnded.ToString(), roomId);
+            
+        }
+        catch(Exception e) {
             await Clients.Clients(action.PlayerId).SendAsync(
                 MessageType.GetNotification.ToString(), e.Message);
         }
@@ -147,7 +158,7 @@ public class GameHub : Hub
 
             if(Users.ContainsKey(userId)) {
                 OpenRooms
-                    .Where(r => r.Id != roomId || r.OwnerId != userId)
+                    .Where(r => r.Id != roomId && r.OwnerId != userId)
                     .ToList().ForEach(async room => {
                         await RemoveFromGroup(room.Id, userId);
                         Engine.QuitRoom(room.Id, userId );
