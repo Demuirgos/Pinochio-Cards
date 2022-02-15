@@ -10,7 +10,7 @@ public class Manager {
         Rooms[roomId].State.Update(message);
         return this;
     }
-    public Manager CreateRoom(Player dealer, int dups, string name, string connectionId, bool isLocked, string password){
+    public Manager CreateRoom(Player dealer, string name, string connectionId, bool isLocked, string password){
         if(Rooms?.Values?.Where((m) => m.Session.Dealer == dealer).Any() ?? false)
             throw new Exception("A dealer can only Have one Room");
         Rooms?.Add(connectionId , new Metadata(
@@ -18,7 +18,6 @@ public class Manager {
                 RoomName = name,
                 SessionType = isLocked ? GameSession.Type.Locked : GameSession.Type.Public,
                 Password = password,
-                PlayerCount = dups,
                 RoomId = connectionId,
                 State = PreState.Pending,
                 Dealer = dealer,

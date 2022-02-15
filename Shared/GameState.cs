@@ -23,7 +23,6 @@ public partial class GameSession {
     public Type SessionType {get; set;}
     public string Password {get; set;}
     public string RoomName {get; set;}
-    public int PlayerCount {get; set;}
     public string RoomId {get; set;}
     public PreState State {get; set;}
     public Player? Dealer {get; set;}

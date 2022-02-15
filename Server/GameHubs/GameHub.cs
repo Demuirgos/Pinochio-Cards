@@ -48,12 +48,11 @@ public class GameHub : Hub
         =>  await Clients.Group(roomId).SendAsync(
                 MessageType.GetMessage.ToString(), 
                 new ChatMessage(Users[userId], message));
-    public async Task SetupRoom(string userId, string roomId, string roomName, string password, int roomSize){
+    public async Task SetupRoom(string userId, string roomId, string roomName, string password){
         try
         {
             Engine.CreateRoom(
                 dealer : new Player(userId, Users[userId]),
-                dups : roomSize,
                 name : roomName,
                 connectionId : roomId,
                 isLocked : !String.IsNullOrWhiteSpace(password),
@@ -123,10 +122,10 @@ public class GameHub : Hub
             }
         };
         try{
-            var state = Engine.UpdateRoom(roomId, action).Rooms[roomId].State;
+            var Room = Engine.UpdateRoom(roomId, action).Rooms[roomId];
             await Clients.Group(roomId).SendAsync(
-                MessageType.GetState.ToString(), Engine.Rooms[roomId]);
-            await SendGameIndicators(state.CurrentPlayer, state.ClaimedCard);
+                MessageType.GetState.ToString(), Room);
+            await SendGameIndicators(Room.State.CurrentPlayer, Room.State.ClaimedCard);
         } 
         catch (GameEndedException end)
         {

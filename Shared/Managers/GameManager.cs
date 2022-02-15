@@ -1,17 +1,17 @@
 namespace Game.Models;
 [System.Serializable]
-public class GameEndedException : System.Exception{
+public class GameEndedException : System.Exception {
     public String WinnerID { get; set; }
     public GameEndedException(String winnerID) {
         WinnerID = winnerID;
     }
-    public string Message(string name) => $"The winner is {name}";
+    public new string Message(string name) => $"The winner is {name}";
 }
 public partial class GameState 
 {
+    public event Action<GameState>? OnStateChanged;
     public void Initiate(GameSession session) {
         this.ClaimedCard = null;
-        this.DupCount = session.PlayerCount;
         this.Deck = CardsActions.Fill(session.Waiting.Count);
         this.Players = session.Waiting;  
     } 
@@ -20,20 +20,26 @@ public partial class GameState
     public int NextPlayer     => (this.Turn + 1) % Players.Count;
     public int PreviousPlayer => (this.Turn  - 1 + Players.Count) % Players.Count;
     public GameState HandleBurns() {
-        List<int> BurnedCards = new();
         foreach (var (id, deck) in PlayerDecks)
         {
-            var ToBeBurned = deck.GroupBy(i => i).Where(g => g.Count() % this.DupCount == 0).Select(g => g.Key).ToList();
-            PlayerDecks[id].RemoveAll(i => ToBeBurned.Contains(i));
-            BurnedCards.AddRange(ToBeBurned);
+            deck.GroupBy(i => i)
+                .GroupBy(g => g.Count() % this.Players.Count == 0)
+                .ToList().ForEach(pool => 
+                    {
+                        if(pool.Key)
+                            this.Deck.AddRange(pool.SelectMany(i => i));
+                        else
+                            PlayerDecks[id] = pool.SelectMany(g => g.Chunk(this.Players.Count).ToArray()[^1]).ToList();
+                    });                    
         }
-        this.Deck.AddRange(BurnedCards);
         return this;
     }
 
     public GameState CheckEnd() {
+        if(Players.Count == 1) throw new GameEndedException(Players[0].Id);
         foreach (var player in PlayerDecks)
-            if(player.Value.Count == 0) throw new GameEndedException(player.Key); // workarround 
+            if(player.Value.Count == 0) 
+                throw new GameEndedException(player.Key); // workarround 
         return this;
     }
 
@@ -76,6 +82,8 @@ public partial class GameState
                     burntDeck.RemoveAt(burntDeck.Count - 1);
                     idx = (idx + 1) % this.Players.Count;
                 }
+                if(this.CurrentPlayer == message.PlayerId)
+                    this.Turn = this.NextPlayer;
                 return HandleBurns().CheckEnd();
             },
             _ => throw new NotImplementedException()
@@ -83,8 +91,3 @@ public partial class GameState
         return handler();
     }    
 }
-
-// we have the stack in the board
-// we have each players deque
-// we have the full deque
-// we have the current player
